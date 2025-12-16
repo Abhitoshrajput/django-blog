@@ -1,3 +1,4 @@
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect, get_object_or_404
 from blogs.models import Category, Blog
@@ -9,7 +10,11 @@ from django.template.defaultfilters import slugify
 @login_required(login_url='login')
 def dashboard(request):
     category_count = Category.objects.all().count()
-    blogs_count = Blog.objects.all().count()
+    if request.user.is_staff:
+        blogs_count = Blog.objects.count()
+    else:
+        blogs_count = Blog.objects.filter(author=request.user).count()
+
     context = {
         'category_count': category_count,
         'blogs_count': blogs_count,
@@ -17,10 +22,12 @@ def dashboard(request):
     return render(request, 'dashboard/dashboard.html', context)
 
 
+@staff_member_required(login_url='login')
 def categories(request):
     return render(request, 'dashboard/categories.html')
 
 
+@staff_member_required(login_url='login')
 def add_category(request):
     if request.method == 'POST':
         form = CategoryForm(request.POST)
@@ -34,6 +41,7 @@ def add_category(request):
     return render(request, 'dashboard/add_category.html', context)
 
 
+@staff_member_required(login_url='login')
 def edit_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
     if request.method == 'POST':
@@ -49,34 +57,42 @@ def edit_category(request, pk):
     return render(request, 'dashboard/edit_category.html', context)
 
 
+@staff_member_required(login_url='login')
 def delete_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
     category.delete()
     return redirect('categories')
 
 
+@login_required
 def posts(request):
-    posts = Blog.objects.all()
+    if request.user.is_staff:
+        posts = Blog.objects.all()
+    else:
+        posts = Blog.objects.filter(author=request.user)
+
     context = {
         'posts': posts,
     }
     return render(request, 'dashboard/posts.html', context)
 
 
+@login_required(login_url='login')
 def add_post(request):
     if request.method == 'POST':
         form = BlogPostForm(request.POST, request.FILES)
+
         if form.is_valid():
             post = form.save(commit=False)  # temporarily saving the form
             post.author = request.user
-            post.save()
+            post.save()    # owner set
+
             title = form.cleaned_data['title']
             post.slug = slugify(title) + '-' + str(post.id)
             post.save()
+
             return redirect('posts')
-        else:
-            print('form is invalid')
-            print(form.errors)
+
     form = BlogPostForm()
     context = {
         'form': form,
@@ -84,12 +100,19 @@ def add_post(request):
     return render(request, 'dashboard/add_post.html', context)
 
 
+@login_required(login_url='login')
 def edit_post(request, pk):
     post = get_object_or_404(Blog, pk=pk)
+
+    # SECURITY CHECK
+    if not request.user.is_staff and post.author != request.user:
+        return redirect('posts')
+
     if request.method == 'POST':
         form = BlogPostForm(request.POST, request.FILES, instance=post)
+
         if form.is_valid():
-            post = form.save()
+            post = form.save(commit=False)
             title = form.cleaned_data['title']
             post.slug = slugify(title) + '-' + str(post.id)
             post.save()
@@ -102,12 +125,19 @@ def edit_post(request, pk):
     return render(request, 'dashboard/edit_post.html', context)
 
 
+@login_required(login_url='login')
 def delete_post(request, pk):
     post = get_object_or_404(Blog, pk=pk)
+
+    # SECURITY CHECK
+    if not request.user.is_staff and post.author != request.user:
+        return redirect('posts')
+
     post.delete()
     return redirect('posts')
 
 
+@staff_member_required(login_url='login')
 def users(requests):
     user = User.objects.all()
     context = {
@@ -116,6 +146,7 @@ def users(requests):
     return render(requests, 'dashboard/users.html', context)
 
 
+@staff_member_required(login_url='login')
 def add_user(request):
     if request.method == 'POST':
         form = AddUserForm(request.POST)
@@ -131,6 +162,7 @@ def add_user(request):
     return render(request, 'dashboard/add_user.html', context)
 
 
+@staff_member_required(login_url='login')
 def edit_user(request, pk):
     user = get_object_or_404(User, pk=pk)
     if request.method == 'POST':
@@ -146,6 +178,7 @@ def edit_user(request, pk):
     return render(request, 'dashboard/edit_user.html', context)
 
 
+@staff_member_required(login_url='login')
 def delete_user(request, pk):
     user = get_object_or_404(User, pk=pk)
     user.delete()

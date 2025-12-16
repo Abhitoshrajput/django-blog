@@ -10,7 +10,9 @@
     <!--Right sidebar content-->
     <div class="col-md-9">
         <h2>All Categories</h2>
+        {% if user.is_staff %}
         <a href="{% url 'add_category' %}" class="btn btn-dark text-light float-right mb-2">Add New</a>
+        {% endif %}
         <table class="table table-hover">
             <thead>
             <tr>
@@ -29,9 +31,13 @@
                 <td>{{ cat.created_at }}</td>
                 <td>{{ cat.updated_at }}</td>
                 <td>
+                    {% if user.is_staff %}
                     <a href="{% url 'edit_category' cat.id %}"><i class="fa fa-edit text-success"></i></a>
                     &nbsp;
                     <a href="{% url 'delete_category' cat.id %}"><i class="fa fa-trash text-danger"></i></a>
+                    {% else %}
+                        ---
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

@@ -10,7 +10,7 @@
 
     <!--Right sidebar content-->
     <div class="col-md-9">
-        {% if perms.auth.view_user %}
+        {% if user.is_staff %}
         <h2>Edit User</h2>
 
         <form action="" method="POST">
